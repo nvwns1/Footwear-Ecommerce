@@ -6,7 +6,7 @@
 }
 
 /* global */
-input[type=text]{
+input[type=text], input[type=email], input[type=password]{
     padding: 5px;
     outline: none;
     height: 40px;
@@ -105,4 +105,11 @@ form {
   padding: 10px;
   width: 400px;
   text-align: center;
+}
+
+.login-error{
+  height: 30px;
+  margin: 10px;
+  text-align: center;
+  color: red;
 }

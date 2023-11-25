@@ -1,5 +1,35 @@
+<?php
+$error = false;
+
+
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    include("./partials/db.php");
+
+    $username = $_POST["username"];
+    $password = $_POST["password"];
+    $userCheck = "SELECT * from users WHERE `username` = '$username'";
+    $resultOfUserCheck = mysqli_query($conn, $userCheck);
+    $numOfUser = mysqli_num_rows($resultOfUserCheck);
+
+    if ($numOfUser == 1) {
+        while ($row = mysqli_fetch_array($resultOfUserCheck)) {
+            if (password_verify($password, $row["password"])) {
+                session_start();
+                $_SESSION['loggedIn'] = true;
+                $_SESSION['username'] = $row['username'];
+                $_SESSION['privilege_level'] = $row['privilege_level'];
+                header('location: index.php');
+                exit();
+            }
+        }
+    } else {
+        $error = true;
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
+
 
 <head>
     <?php
@@ -12,18 +42,28 @@
 
 <body>
     <?php
+    if (isset($_SESSION["username"])) {
+        echo $_SESSION['username'];
+    } ?>
+    <?php
     include('components/navbar.php');
     ?>
     <div class="login-page-container">
         <div class="login-container">
             <h2>Login Form</h2>
-            <br>
-            <form class="login-form" action="">
+            <p class="login-error">
+                <?php
+                if (isset($error) && $error) {
+                    echo "Invalid username and password";
+                }
+                ?>
+            </p>
+            <form class="login-form" method="post">
                 <label for="">UserName</label>
-                <input type="text" name="" id="">
+                <input type="text" name="username" id="" required>
                 <br>
                 <label for="">Password</label>
-                <input type="text" name="" id="">
+                <input type="text" name="password" id="" required>
                 <br>
                 <button class="page-button" type="submit">Login</button>
             </form>

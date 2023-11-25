@@ -1,3 +1,39 @@
+<?php
+$didMatch = false;
+$empty = false;
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    include("partials/db.php");
+    $username = $_POST["username"];
+    $password = $_POST["password"];
+    $email = $_POST["email"];
+
+    $usernameCheck = "SELECT * FROM `users`   WHERE  `username`='$username'";
+    $resOfCheck = mysqli_query($conn, $usernameCheck);
+    $numOfUserName = mysqli_num_rows($resOfCheck);
+
+    if ($numOfUserName > 0) {
+        $didMatch = true;
+    } else {
+        if ($username == "" || $password == "" || $email == "") {
+            $empty = true;
+        } else if (($password != "") && ($exist == false)) {
+            $passwordHash = password_hash($password, PASSWORD_DEFAULT);
+
+            $q = "INSERT INTO `users`(`username`, `password`, `email`) VALUES ('$username','$passwordHash','$email')";
+            $result1 = mysqli_query($conn, $q);
+            if ($result1) {
+                session_start();
+                $_SESSION["username"] = $username;
+                $_SESSION["privilege_level"] = $privilege_level;
+                header("location: index.php");
+            }
+        } else {
+            $error = "An error occured. Please try again later.";
+        }
+    }
+}
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -17,16 +53,26 @@
     <div class="login-page-container">
         <div class="login-container">
             <h2>Signup Form</h2>
-            <br>
-            <form class="login-form" action="">
+            <p class="login-error">
+                <?php
+                if (isset($didMatch) && $didMatch) {
+                    echo "Username already exists.";
+                } else if (isset($empty) && $empty) {
+                    echo "Please fill all fields";
+                } else {
+                    echo "";
+                }
+                ?>
+            </p>
+            <form class="login-form" method='post'>
                 <label for="">UserName</label>
-                <input type="text" name="" id="">
+                <input type="text" name="username" id="username" required>
                 <br>
                 <label for="">Email</label>
-                <input type="text" name="" id="">
+                <input type="email" name="email" id="email" required>
                 <br>
                 <label for="">Password</label>
-                <input type="text" name="" id="">
+                <input type="text" name="password" id="password" required>
                 <br>
                 <button class="page-button" type="submit">Signup</button>
             </form>
