@@ -1,7 +1,12 @@
 <?php
+session_start();
+if ($_SESSION['privilege_level'] != 'admin') {
+    header('location: index.php');
+    exit();
+}
 include("partials/db.php");
-
-if($_SERVER["REQUEST_METHOD"] === "POST"){
+$msg = "";
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $name = $_POST["name"];
     $price = $_POST["price"];
     $discounted_price = $_POST["discounted_price"];
@@ -11,33 +16,33 @@ if($_SERVER["REQUEST_METHOD"] === "POST"){
     $stocks = $_POST["stocks"];
     $category = $_POST["category"];
     $sku = $_POST["sku"];
-    
+
     $image  = $_FILES["imageInput"];
     $image_name = $image['name'];
     $image_tmp = $image['tmp_name'];
     $image_path = 'photo/' . $image_name;
     move_uploaded_file($image_tmp, $image_path);
-    
 
-   // SQL query to insert data into the products_table
-$sql = "INSERT INTO products_table (name, price, discounted_price, short_description, long_description, size_available, stocks, category, sku, image_url)
+
+    // SQL query to insert data into the products_table
+    $sql = "INSERT INTO products_table (name, price, discounted_price, short_description, long_description, size_available, stocks, category, sku, image_url)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?,?)";
 
-$stmt = $conn->prepare($sql);
+    $stmt = $conn->prepare($sql);
 
-// Bind parameters
-$stmt->bind_param('ssssssssss', $name, $price, $discounted_price, $short_description, $long_description, $size_available, $stocks, $category, $sku,$image_path);
+    // Bind parameters
+    $stmt->bind_param('ssssssssss', $name, $price, $discounted_price, $short_description, $long_description, $size_available, $stocks, $category, $sku, $image_path);
 
-// Execute the statement
-if ($stmt->execute()) {
-    echo "Product added successfully!";
-} else {
-    echo "Error: " . $stmt->error;
-}
+    // Execute the statement
+    if ($stmt->execute()) {
+        $msg = "Product added successfully!";
+    } else {
+        $msg = "Error: " . $stmt->error;
+    }
 
-// Close the statement and connection
-$stmt->close();
-$conn->close();
+    // Close the statement and connection
+    $stmt->close();
+    $conn->close();
 }
 ?>
 
@@ -62,8 +67,11 @@ $conn->close();
         <div class="heading-section">
             <div class="text-side">
                 <h1>Add Product</h1>
+                <?php if ($msg != "") {
+                    echo $msg;
+                } ?>
             </div>
-         
+
         </div>
         <div class="add-form">
             <form class="add-product-form" method="POST" enctype="multipart/form-data">

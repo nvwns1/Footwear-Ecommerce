@@ -1,8 +1,14 @@
 <?php
+session_start();
+if ($_SESSION['privilege_level'] != 'admin') {
+    header('location: index.php');
+    exit();
+}
 include("partials/db.php");
 
 // Check if the product ID is provided in the URL
 if (isset($_GET['id'])) {
+
     $productId = $_GET['id'];
 
     $sql = "SELECT * FROM products_table WHERE id = ?";

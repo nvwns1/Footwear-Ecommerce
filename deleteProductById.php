@@ -1,4 +1,9 @@
 <?php
+session_start();
+if ($_SESSION['privilege_level'] != 'admin') {
+    header('location: index.php');
+    exit();
+}
 
 // Function to establish a PDO connection to the database
 function connectToDatabase()

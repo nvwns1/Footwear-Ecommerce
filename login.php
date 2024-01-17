@@ -16,10 +16,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             if (password_verify($password, $row["password"])) {
                 session_start();
                 $_SESSION['loggedIn'] = true;
+                $_SESSION['user_id'] = $row['user_id'];
                 $_SESSION['username'] = $row['username'];
                 $_SESSION['privilege_level'] = $row['privilege_level'];
-                header('location: index.php');
-                exit();
+                if ($_SESSION['privilege_level'] == 'admin') {
+                    header('location: adminDashboard.php');
+                    exit();
+                } else {
+                    header('location: index.php');
+                    exit();
+                }
             }
         }
     } else {

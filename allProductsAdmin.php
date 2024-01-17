@@ -1,4 +1,9 @@
 <?php
+session_start();
+if ($_SESSION['privilege_level'] != 'admin') {
+    header('location: index.php');
+    exit();
+}
 include("partials/db.php");
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $productsPerPage = 10;
@@ -54,45 +59,7 @@ $conn->close();
         height: 100%;
     }
 
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 20px;
-    }
-
-    th,
-    td {
-        border: 1px solid #ddd;
-        padding: 12px;
-        text-align: left;
-    }
-
-    .action-buttons {
-        display: flex;
-        gap: 2px;
-        justify-content: center;
-
-    }
-
-    .action-buttons button {
-        padding: 8px;
-        margin: 2px;
-        cursor: pointer;
-        border-radius: 10px;
-        width: 100px;
-    }
-
-    .edit-btn {
-        background-color: #4CAF50;
-        color: white;
-        border: none;
-    }
-
-    .delete-btn {
-        background-color: #f44336;
-        color: white;
-        border: none;
-    }
+    
 </style>
 
 <body>
