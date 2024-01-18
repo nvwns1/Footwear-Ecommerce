@@ -81,7 +81,7 @@ $conn->close();
         </div>
         <p class="message" id="message"></p>
         <div class="allProduct-container">
-            <table>
+            <table class="table">
                 <thead>
                     <tr>
                         <th>Id</th>

@@ -6,13 +6,13 @@ if ($_SESSION['privilege_level'] != 'admin') {
 }
 include("partials/db.php");
 
+//query to get number of order recieved, pending, deliver, cancel
 $query = "SELECT 
             COUNT(*) AS totalOrders, 
             COUNT(CASE WHEN status='pending' THEN 1 END) AS totalPendingOrders,
             COUNT(CASE WHEN status='delivered' THEN 1 END) AS totalDeliveredOrders,
             COUNT(CASE WHEN status='canceled' THEN 1 END) AS totalCanceledOrders
           FROM orders";
-
 $result = $conn->query($query);
 
 if ($result) {
@@ -28,6 +28,7 @@ if ($result) {
 $recordsPerPage = 10;
 $current_page = isset($_GET['page']) ? $_GET['page'] : 1;
 $offset = ($current_page - 1) * $recordsPerPage;
+//query for recent orders
 $queryforRecentOrder = "
 SELECT 
 orders.order_id, 
@@ -152,7 +153,7 @@ $resultforRecentOrder = $conn->query($queryforRecentOrder);
               echo '<td>' . $status . '</td>';
               echo '<td>' . $row['token'] . '</td>';
               echo '<td>' .
-                '<button type="button" onClick="console.log(' . $row['order_id'] . ')"
+                '<button type="button"
                  class="btn btn-primary" data-toggle="modal" data-target="#modal_' . $row['order_id'] . '">
               View </button>'
                 . '</td>';
@@ -164,9 +165,7 @@ $resultforRecentOrder = $conn->query($queryforRecentOrder);
         </tbody>
       </table>
 
-
       <!-- Modal -->
-
       <?php
       $resultforRecentOrder1 = $conn->query($queryforRecentOrder);
 
@@ -252,40 +251,7 @@ $resultforRecentOrder = $conn->query($queryforRecentOrder);
       }
       ?>
 
-      <div class="modal fade" id="myModal" role="dialog">
-        <div class="modal-dialog">
-
-          <!-- Modal content-->
-          <div class="modal-content">
-            <div class="modal-header">
-              <button type="button" class="close" data-dismiss="modal">&times;</button>
-              <h4 class="modal-title">Order: Order Id</h4>
-            </div>
-            <div class="modal-body">
-              <p>Product Images</p>
-              <p>Product Name</p>
-              <p>Product Size</p>
-              <p>Product Quantity</p>
-              <p>Product Price</p>
-              <p>Total Price</p>
-              <p>Payment Status</p>
-              <p>Token</p>
-              <p>Shipping address</p>
-              <p>Order Status</p>
-
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-            </div>
-          </div>
-
-        </div>
-      </div>
-
     </div>
-
-
-
 
     <?php
     $paginationQuery = "SELECT COUNT(DISTINCT orders.order_id) as total FROM orders";
@@ -294,13 +260,11 @@ $resultforRecentOrder = $conn->query($queryforRecentOrder);
     $totalRecords = $paginationRow['total'];
     $totalPages = ceil($totalRecords / $recordsPerPage);
     for ($i = 1; $i <= $totalPages; $i++) {
-      echo '<a href="?page=' . $i . '">' . $i . '</a>';
+      echo '<a style="padding-right: 15px;" href="?page=' . $i . '">' . $i . '</a> ';
     }
     ?>
 
   </div>
-  </div>
 
 </body>
-
 </html>

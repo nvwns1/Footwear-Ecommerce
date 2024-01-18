@@ -5,11 +5,35 @@ if ($_SESSION['privilege_level'] != 'admin') {
     header('location: index.php');
     exit();
 }
-$msg = "";
-//Fetch cart data base on user_id
-
+$recordsPerPage = 10;
+$current_page = isset($_GET['page']) ? $_GET['page'] : 1;
+$offset = ($current_page - 1) * $recordsPerPage;
 try {
-    $sql = "SELECT * FROM orders WHERE status = 'pending'";
+    $sql = "SELECT  
+orders.order_id, 
+MAX(orders.user_id) AS user_id, 
+MAX(orders.order_date) AS order_date, 
+MAX(orders.total_amount) AS total_amount, 
+MAX(orders.status) AS status, 
+MAX(orders.shipping_address) AS shipping_address, 
+MAX(orders.payment_status) AS payment_status, 
+MAX(orders.token) AS token, 
+GROUP_CONCAT(order_items.order_item_id) AS order_item_ids, 
+GROUP_CONCAT(order_items.size) AS sizes, 
+GROUP_CONCAT(products_table.id) AS product_ids, 
+GROUP_CONCAT(SUBSTRING(products_table.name, 1, 15)) AS product_names, 
+GROUP_CONCAT(order_items.quantity) AS quantities, 
+GROUP_CONCAT(order_items.price) AS prices 
+FROM orders 
+INNER JOIN 
+order_items ON orders.order_id = order_items.order_id 
+INNER JOIN products_table 
+ON order_items.product_id = products_table.id 
+WHERE orders.status = 'pending'
+GROUP BY orders.order_id
+LIMIT 
+$offset, $recordsPerPage";
+
     $stmt = $conn->prepare($sql);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -17,21 +41,24 @@ try {
 } catch (Exception $e) {
     echo "Error: " . $e->getMessage();
 }
-
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
-
     $order_id = $_POST['order_id'];
     $newStatus = $_POST['status'];
 
     $sql = "UPDATE orders SET status = '$newStatus' WHERE order_id = '$order_id'";
     if ($conn->query($sql) === TRUE) {
-        $msg =  "Status updated successfully";
-        // header("location: adminDashboard.php");
-        // exit();
+        $_SESSION['msg'] = "Status updated successfully";
+        header("Location: " . $_SERVER['PHP_SELF']);
+        exit();
     } else {
         echo "Error updating status: " . $conn->error;
     }
-}    ?>
+}
+
+if (isset($_SESSION['msg'])) {
+    $msg = $_SESSION['msg'];
+    unset($_SESSION['msg']);
+} ?>
 
 <!DOCTYPE html>
 <html lang="en">
@@ -54,10 +81,17 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         <div class="heading-section">
             <div class="text-side">
                 <h1>Order Pending</h1>
+                <p id='msg' class="message">
+                    <?php
+                    if (isset($msg)) {
+                        echo  $msg;
+                    }
+                    ?>
+                </p>
             </div>
         </div>
         <div class="allProduct-container">
-            <table>
+            <table class="table">
                 <thead>
                     <tr>
                         <th>Order Id</th>
@@ -72,19 +106,18 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 </thead>
                 <tbody>
                     <?php
-                    $items_query = "SELECT products.name, products.image_url,
-                    order_items.price,
-                    order_items.quantity FROM order_items
-                    INNER JOIN products_table as products ON order_items.product_id = products.id
-                    WHERE order_items.order_id = $order_id
-                    ";
                     foreach ($orders as $order) :
                         $order_id = $order['order_id'];
                         $order_date = $order['order_date'];
                         $total_amount = $order['total_amount'];
                         $status = $order['status'];
                         $shipping_address = $order['shipping_address'];
-                        $payment_method = $order['payment_method'];
+                        $payment_method;
+                        if ($order['payment_status'] === 'paid') {
+                            $payment_method = 'Paid via Khalti';
+                        } else {
+                            $payment_method = 'Cash on Delivery';
+                        }
                         $payment_status = $order['payment_status'];
                     ?>
                         <tr>
@@ -94,118 +127,138 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                             <td><?php echo $shipping_address ?></td>
                             <td><?php echo $payment_method ?></td>
                             <td><?php echo $payment_status ?></td>
-                            <td><?php echo $total_amount ?></td>
-                            <td>Action</td>
+                            <td>Rs. <?php echo $total_amount ?></td>
+                            <td>
+
+                                <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#modal_<?php echo $order_id; ?>">
+                                    Edit </button>
+                            </td>
                         </tr>
                     <?php
-
                     endforeach; ?>
 
                 </tbody>
             </table>
+
             <?php
-            foreach ($orders as $order) :
-                $order_id = $order['order_id'];
-                $order_date = $order['order_date'];
-                $total_amount = $order['total_amount'];
-                $status = $order['status'];
-                $shipping_address = $order['shipping_address'];
-                $payment_method = $order['payment_method'];
-                $payment_status = $order['payment_status'];
+            foreach ($orders as $row) :
+                $order_id = $row['order_id'];
+            ?>
+                <div class="modal fade" id="modal_<?php echo $order_id;  ?>" role="dialog">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                                <h4 class="modal-title">Order: <?php echo $row['order_id']; ?></h4>
+                            </div>
+                            <div class="modal-body">
+                                <table class="table">
+                                    <tr>
+                                        <td>S.N</td>
+                                        <td>Product Id</td>
+                                        <td>Product Name</td>
+                                        <td>Product Size</td>
+                                        <td>Product Quantity</td>
+                                        <td>Product Price</td>
+                                    </tr>
+                                    <?php
+                                    $productIds = explode(',', $row['order_item_ids']);
+                                    $productNames = explode(',', $row['product_names']);
+                                    $productSizes = explode(',', $row['sizes']);
+                                    $productQuantities = explode(',', $row['quantities']);
+                                    $productPrices = explode(',', $row['prices']);
+                                    $numberOfProducts = count($productIds);
+                                    for ($i = 0; $i < $numberOfProducts; $i++) {
+                                        echo '<tr>';
+                                        echo '<td>' . $i + 1 . '</td>';
+                                        echo '<td>' . $productIds[$i] . '</td>';
+                                        echo '<td>' . $productNames[$i] . '</td>';
+                                        echo '<td>' . $productSizes[$i] . '</td>';
+                                        echo '<td>' . $productQuantities[$i] . '</td>';
+                                        echo '<td>' . $productPrices[$i] . '</td>';
+                                        echo '</tr>';
+                                    }
+                                    ?>
+                                    <tr>
+                                        <td colspan="3">Total Price</td>
+                                        <td colspan="3"><?php echo $row['total_amount']; ?></td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="3">Payment Status</td>
+                                        <td colspan="3"><?php echo $row['payment_status']; ?></td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="3">Payment Method</td>
+                                        <td colspan="3">
+                                            <?php
+                                            if ($row['payment_status'] === 'paid') {
+                                                echo "Paid Via Khalti";
+                                            } else {
+                                                echo "Cash On Delivery";
+                                            } ?></td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="3">Token</td>
+                                        <td colspan="3"><?php echo $row['token']; ?></td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="3">Shipping address</td>
+                                        <td colspan="3"><?php echo $row['shipping_address']; ?></td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="3">Order Status</td>
+                                        <td colspan="3"><?php echo $row['status']; ?></td>
+                                    </tr>
+                                    <form style="background-color: red;" action="" method="post">
+                                        <input type="text" name="order_id" value=<?php echo $order_id ?> hidden>
+                                        <div class="radio">
+                                            <label>
+                                                <input type="radio" name="status" value="pending" checked>
+                                                Pending
+                                            </label>
+                                            <br>
+                                            <label>
+                                                <input type="radio" name="status" value="delivered">Delivered
+                                            </label><br>
+                                            <label>
+                                                <input type="radio" name="status" value="canceled">Canceled
+                                            </label>
+                                        </div>
+                                        <button class="button btn-primary" type="submit"> Status</button>
+                                    </form>
+                                </table>
 
-                echo "<div class='small-container'";
-                echo "Order ID: " . $order_id . "<br>";
-                echo '<p> 
-        Order Date: ' . $order_date .   '</br>' .
-                    'Status: ' . $status . '<br>' .
-                    'Shipping Address: ' . $shipping_address . '<br>' .
-                    'Payment Method: ' . $payment_method . '<br>';
-
-                if ($payment_method == 'online') {
-                    echo 'Payment Status: ' . $payment_status . '<br>';
-                }
-
-                echo '</p>';
-
-                echo '<h4>' . "Total Amount: " . $total_amount .  '</h4>'; ?>
-                <div class="status-form">
-                    <form action="" method="post">
-                        <input type="text" name="order_id" value=<?php echo $order_id ?> hidden>
-                        <div class="radio">
-                            <input type="radio" name="status" value="pending" checked>Pending
-                            <input type="radio" name="status" value="delivered">Delivered
-                            <input type="radio" name="status" value="canceled">Canceled
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                            </div>
                         </div>
-                        <button style="width:200px; margin:10px;" class="page-button" onclick="">Edit Status</button>
-                    </form>
+                    </div>
                 </div>
             <?php
-                $items_query = "SELECT products.name, products.image_url,
-                order_items.price,
-                order_items.quantity FROM order_items
-                INNER JOIN products_table as products ON order_items.product_id = products.id
-                WHERE order_items.order_id = $order_id
-                ";
-                $items_result = mysqli_query($conn, $items_query) or die('Query failed');
-                if (mysqli_num_rows($items_result) > 0) {
-                    echo "<div class=artist-container>";
-
-                    while ($item_row = mysqli_fetch_assoc($items_result)) {
-                        $title = $item_row['name'];
-                        $image_path = $item_row['image_url'];
-                        $quantity = $item_row['quantity'];
-                        $item_price = $item_row['price'];
-
-                        echo '<h2>' . $title .  '</h2>';
-                        echo '<img src="' . $image_path . '">';
-                        echo '<p>' . "Price: " . $item_price .  '</p>';
-                        echo '<p>' . "Quantity: " . $quantity .  '</p>';
-                        echo "<br>";
-                        echo "</div>";
-                    }
-                }
-
-
-                echo "</div> <hr>";
-
             endforeach; ?>
 
-            <!-- <table>
-                <thead>
-                    <tr>
-                        <th>Order Id</th>
-                        <th>Size</th>
-                        <th>Price</th>
-                        <th>Quantity</th>
-                        <th>Action</th>
-                    </tr>
-
-                </thead>
-                <tbody>
-                    <?php
-                    /* $grandTotal = 0;
-                    foreach ($products as $product) : ?>
-                        <tr>
-                            <td><?php echo $product['name']; ?></td>
-                            <td><?php echo $product['size']; ?></td>
-                            <td><?php
-                                $totalProducts = $product['price'] * $product['quantity'];
-                                $grandTotal += $totalProducts;
-                                echo $totalProducts;
-                                ?></td>
-                            <td><?php echo $product['quantity']; ?></td>
-                            <td class="action-buttons">
-                                <!-- <button class="edit-btn">Edit</button> -->
-                                <button class="delete-btn" onclick="confirmDelete(event, <?php echo $product['cart_id']; ?>)">Delete</button>
-                            </td>
-                        </tr>
-                    <?php endforeach; */ ?>
-
-                </tbody>
-            </table> -->
         </div>
-
+        <?php
+        $paginationQuery = "SELECT COUNT(DISTINCT orders.order_id) as total FROM orders WHERE status = 'pending'";
+        $paginationResult = $conn->query($paginationQuery);
+        $paginationRow = $paginationResult->fetch_assoc();
+        $totalRecords = $paginationRow['total'];
+        $totalPages = ceil($totalRecords / $recordsPerPage);
+        for ($i = 1; $i <= $totalPages; $i++) {
+            echo '<a style="padding-right: 15px;" href="?page=' . $i . '">' . $i . '</a> ';
+        }
+        ?>
     </div>
+
+    <script>
+        setTimeout(function() {
+            const msgElement = document.getElementById('msg');
+            if (msgElement) {
+                msgElement.style.display = 'none';
+            }
+        }, 4000);
+    </script>
 </body>
 
 </html>

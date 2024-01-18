@@ -90,7 +90,6 @@ if (isset($_SESSION['msg'])) {
                                 ?></td>
                             <td><?php echo $product['quantity']; ?></td>
                             <td class="action-buttons">
-                                <!-- <button class="edit-btn">Edit</button> -->
                                 <button class="delete-btn" onclick="confirmDelete(event, <?php echo $product['cart_id']; ?>)">Delete</button>
                             </td>
                         </tr>
