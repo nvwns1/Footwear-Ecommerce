@@ -88,7 +88,6 @@ $conn->close();
             <p class="price-text">NPR <?php echo $product['price']; ?></p>
             <p class="short-description-text"><?php echo $product['short_description']; ?>
             </p>
-            <div class="icon cart-icon">Icon</div>
           </div>
         </div>
       <?php endforeach; ?>
@@ -107,26 +106,7 @@ $conn->close();
         <a href='?page=<?php echo $page + 1; ?>'>Next &raquo;</a>
       <?php endif; ?>
     </div>
-    <script>
-      document.addEventListener("DOMContentLoaded", function() {
-        const cartIcons = document.querySelectorAll(".cart-icon");
-        const productCardImages = document.querySelectorAll(".product-card-image");
-        const productCardBacks = document.querySelectorAll(".card-back");
-        const closeIcons = document.querySelectorAll(".close-icon");
 
-        cartIcons.forEach((cartIcon, index) => {
-          cartIcon.addEventListener("click", () => {
-            productCardImages[index].style.display = "none";
-            productCardBacks[index].style.display = "flex";
-          });
-
-          closeIcons[index].addEventListener("click", () => {
-            productCardImages[index].style.display = "flex";
-            productCardBacks[index].style.display = "none";
-          });
-        });
-      });
-    </script>
 
 </body>
 

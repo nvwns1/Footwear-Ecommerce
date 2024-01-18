@@ -57,6 +57,52 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             </div>
         </div>
         <div class="allProduct-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Order Id</th>
+                        <th>Date</th>
+                        <th>Order Status</th>
+                        <th>Shipping Address</th>
+                        <th>Payment Method</th>
+                        <th>Payment Status</th>
+                        <th>Total amount</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php
+                    $items_query = "SELECT products.name, products.image_url,
+                    order_items.price,
+                    order_items.quantity FROM order_items
+                    INNER JOIN products_table as products ON order_items.product_id = products.id
+                    WHERE order_items.order_id = $order_id
+                    ";
+                    foreach ($orders as $order) :
+                        $order_id = $order['order_id'];
+                        $order_date = $order['order_date'];
+                        $total_amount = $order['total_amount'];
+                        $status = $order['status'];
+                        $shipping_address = $order['shipping_address'];
+                        $payment_method = $order['payment_method'];
+                        $payment_status = $order['payment_status'];
+                    ?>
+                        <tr>
+                            <td><?php echo $order_id ?></td>
+                            <td><?php echo $order_date ?></td>
+                            <td><?php echo $status ?></td>
+                            <td><?php echo $shipping_address ?></td>
+                            <td><?php echo $payment_method ?></td>
+                            <td><?php echo $payment_status ?></td>
+                            <td><?php echo $total_amount ?></td>
+                            <td>Action</td>
+                        </tr>
+                    <?php
+
+                    endforeach; ?>
+
+                </tbody>
+            </table>
             <?php
             foreach ($orders as $order) :
                 $order_id = $order['order_id'];

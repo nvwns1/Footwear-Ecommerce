@@ -55,12 +55,17 @@ function addToCart($conn, $userId, $productId, $quantity, $refresh, $selected_si
 if (isset($_POST['add_to_cart'])) {
     $productId = $_POST['productId'];
     $quantity = $_POST['quantity'];
+    $stocks = $_POST['stocks'];
     $selected_size = $_POST['selected_size'];
     if (empty($userId)) {
         echo "<script>alert('please login')</script>";
     } else {
-        addToCart($conn, $userId, $productId, $quantity, false, $selected_size);
-        $msg = "Successfully added to cart";
+        if ($stocks >= $quantity) {
+            addToCart($conn, $userId, $productId, $quantity, false, $selected_size);
+            $msg = "Successfully added to cart";
+        } else {
+            $msg = "Out of Stock";
+        }
     }
 }
 
@@ -91,7 +96,8 @@ if (isset($_POST['add_to_cart'])) {
             align-items: center;
             justify-content: center;
         }
-        img{
+
+        img {
             height: 500px;
         }
 
@@ -153,22 +159,34 @@ if (isset($_POST['add_to_cart'])) {
                         <li><?php echo htmlspecialchars(trim($line)); ?></li>
                     <?php endforeach; ?>
                 </ul>
+
                 </p>
-                <p>Size: <br>
-                    <?php
-                    $sizeList = explode(', ', $product['size_available']);
-                    foreach ($sizeList as $size) : ?>
-                        <input type="radio" name="selected_size" value="<?php echo htmlspecialchars($size); ?>" required>
-                        <?php echo htmlspecialchars($size); ?>
-                        </label>
-                    <?php endforeach; ?>
-                </p>
-                <div class="quantity">
-                    <button id="subQuantity" type="button" class="page-button sum">-</button>
-                    <input type="number" id="quantity" name="quantity" value="1" min="1" required>
-                    <button id="addQuantity" type="button" class="page-button sum">+</button>
-                </div>
-                <button type="submit" class="page-button" name="add_to_cart" id="addToCart">Add to cart</button>
+                <?php
+                if ($product['stocks'] > 0) {
+                ?>
+                    <p>Size: <br>
+                        <?php
+                        $sizeList = explode(', ', $product['size_available']);
+                        foreach ($sizeList as $size) : ?>
+                            <input type="radio" name="selected_size" value="<?php echo htmlspecialchars($size); ?>" required>
+                            <?php echo htmlspecialchars($size); ?>
+                            </label>
+                        <?php endforeach; ?>
+                    </p>
+
+                    <div class="quantity">
+                        <button id="subQuantity" type="button" class="page-button sum">-</button>
+                        <input type="number" id="quantity" name="quantity" value="1" min="1" max=<?php echo $product['stocks'] ?> required>
+                        <button id="addQuantity" type="button" class="page-button sum">+</button>
+                    </div>
+                    <input type="number" id="stocks" name="stocks" value=<?php echo $product['stocks'] ?> hidden required>
+
+                    <button type="submit" class="page-button" name="add_to_cart" id="addToCart">Add to cart</button>
+                <?php
+                } else {
+                    echo "Out of Stock";
+                }
+                ?>
                 <hr>
                 <p><b>Sku:</b> <?php echo $product['sku']; ?></p>
                 <p><b>Categories:</b><?php echo $product['category']; ?></p>

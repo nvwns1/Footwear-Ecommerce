@@ -1,8 +1,8 @@
 <?php
 include "./partials/db.php";
 $userId = "";
-$msg = "";
 session_start();
+$msg = isset($_SESSION['msg']) ? $_SESSION['msg'] : '';
 //Fetch cart data base on user_id
 if (isset($_SESSION['user_id'])) {
     $userId = $_SESSION['user_id'];
@@ -20,9 +20,18 @@ try {
 
 if (isset($_GET['delete'])) {
     $delete_id = $_GET['delete'];
-    mysqli_query($conn, "DELETE FROM `cart`
+    $result = mysqli_query($conn, "DELETE FROM `cart`
     WHERE cart_id = '$delete_id'") or die('query failed');
-    $msg = "Successfully deleted!!";
+    if ($result) {
+        $_SESSION['msg'] = "Successfully deleted!!";
+        header("Location: " . $_SERVER['PHP_SELF']);
+        exit();
+    }
+}
+
+if (isset($_SESSION['msg'])) {
+    $msg = $_SESSION['msg'];
+    unset($_SESSION['msg']);
 }
 ?>
 
@@ -46,10 +55,10 @@ if (isset($_GET['delete'])) {
         <div class="heading-section">
             <div class="text-side">
                 <h1>My Cart</h1>
-                <p class="message">
+                <p id='msg' class="message">
                     <?php
                     if (isset($msg)) {
-                        echo $msg;
+                        echo  $msg;
                     }
                     ?>
                 </p>
@@ -110,6 +119,14 @@ if (isset($_GET['delete'])) {
             alert("Deletion canceled.");
         }
     }
+
+    // JavaScript function to hide the message after 4 seconds
+    setTimeout(function() {
+        const msgElement = document.getElementById('msg');
+        if (msgElement) {
+            msgElement.style.display = 'none';
+        }
+    }, 4000);
 </script>
 
 </html>

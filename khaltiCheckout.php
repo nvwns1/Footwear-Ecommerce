@@ -96,8 +96,9 @@ if ($_SERVER["REQUEST_METHOD"] == "GET") {
                             orderId
                         }),
                     })
+                    console.log(payload)
                     if (payload) {
-                        window.location.href = 'orderHistory.php';
+                        // window.location.href = 'orderHistory.php';
                     }
                 },
                 onError(error) {

@@ -15,54 +15,56 @@ if (isset($_POST['order'])) {
     if ($payment_method == "online") {
         $query = "SELECT cart.cart_id, cart.user_id, products.id as productId, products.name, products.image_url, products.price, cart.quantity
     FROM cart INNER JOIN products_table AS products ON products.id = cart.product_id WHERE cart.user_id = '$userId'";
-    $result = mysqli_query($conn, $query) or die('query failed');
-    if (mysqli_num_rows($result) > 0) {
-        while ($row = mysqli_fetch_assoc($result)) {
-            $product_id = $row['productId'];
-            $quantity = $row['quantity'];
+        $result = mysqli_query($conn, $query) or die('query failed');
+        if (mysqli_num_rows($result) > 0) {
+            while ($row = mysqli_fetch_assoc($result)) {
+                $product_id = $row['productId'];
+                $quantity = $row['quantity'];
 
-            // Add the product details to the cart products array
-            $cart_products[] = [
-                'product_id' => $product_id,
-                'title' => $row['name'],
-                'image_url' => $row['image_url'],
-                'price' => $row['price'],
-                'quantity' => $quantity
-            ];
-            $sub_total = ($row['price'] * $quantity);
-            $cart_total += $sub_total;
+                // Add the product details to the cart products array
+                $cart_products[] = [
+                    'product_id' => $product_id,
+                    'title' => $row['name'],
+                    'image_url' => $row['image_url'],
+                    'price' => $row['price'],
+                    'quantity' => $quantity
+                ];
+                $sub_total = ($row['price'] * $quantity);
+                $cart_total += $sub_total;
+            }
         }
-    }
-    if (!empty($cart_products)) {
-        // Insert order into the `orders` table
-        mysqli_query($conn, "INSERT INTO `orders`(`user_id`, `total_amount`, `status`, `shipping_address`, `payment_method`, `payment_status`)
+        if (!empty($cart_products)) {
+            // Insert order into the `orders` table
+            mysqli_query($conn, "INSERT INTO `orders`(`user_id`, `total_amount`, `status`, `shipping_address`, `payment_method`, `payment_status`)
             VALUES ('$userId','$cart_total','$status','$address','$payment_method','not-paid')") or die('query failed');
 
-        // Retrieve the newly inserted order_id
-        $order_id = mysqli_insert_id($conn);
+            // Retrieve the newly inserted order_id
+            $order_id = mysqli_insert_id($conn);
 
-        // Insert order items into the `order_items` table
-        foreach ($cart_products as $product) {
-            $product_id = $product['product_id'];
-            $quantity = $product['quantity'];
-            $order_price = $product['price'];
+            // Insert order items into the `order_items` table
+            foreach ($cart_products as $product) {
+                $product_id = $product['product_id'];
+                $quantity = $product['quantity'];
+                $order_price = $product['price'];
 
-            mysqli_query($conn, "INSERT INTO `order_items`(`order_id`, `product_id`, `quantity`, `price`)
-                VALUES ('$order_id','$product_id','$quantity', '$order_price')") or die('query failed');
+                $result = mysqli_query($conn, "SELECT `stocks` FROM `products_table` WHERE `id` = '$product_id'");
+                $row = mysqli_fetch_assoc($result);
+                $current_stock = $row['stocks'];
+                // Calculate new stock
+                $new_stock = $current_stock - $quantity;
+
+                if ($new_stock >= 0) {
+                    mysqli_query($conn, "INSERT INTO `order_items`(`order_id`, `product_id`, `quantity`, `price`)
+                    VALUES ('$order_id','$product_id','$quantity', '$order_price')") or die('query failed');
+                    // Update stock in the product table
+                    mysqli_query($conn, "UPDATE `products_table` SET `stocks`='$new_stock' WHERE `id`='$product_id'") or die('Query failed');
+                }
+            }
+
+
+            header("Location: khalticheckout.php?orderId=" . $order_id);
+            exit();
         }
-
-
-        // // Delete cart items from the `cart` table
-        // mysqli_query($conn, "DELETE FROM `cart` WHERE user_id = '$userId'") or die('query failed');
-        // header("location: index.php");
-        // exit();
-
-        header("Location: khalticheckout.php?orderId=" . $order_id);
-        exit();
-    }
-
-
-
     }
     if ($payment_method == "COD") {
         $query = "SELECT cart.cart_id, cart.user_id, products.id as productId, products.name, products.image_url, products.price, cart.quantity
@@ -100,10 +102,21 @@ if (isset($_POST['order'])) {
                 $quantity = $product['quantity'];
                 $order_price = $product['price'];
 
-                mysqli_query($conn, "INSERT INTO `order_items`(`order_id`, `product_id`, `quantity`, `price`)
-                    VALUES ('$order_id','$product_id','$quantity', '$order_price')") or die('query failed');
-            }
+                $result = mysqli_query($conn, "SELECT `stocks` FROM `products_table` WHERE `id` = '$product_id'");
+                $row = mysqli_fetch_assoc($result);
+                $current_stock = $row['stocks'];
+                // Calculate new stock
+                $new_stock = $current_stock - $quantity;
 
+                if ($new_stock >= 0) {
+                    mysqli_query($conn, "INSERT INTO `order_items`(`order_id`, `product_id`, `quantity`, `price`)
+                    VALUES ('$order_id','$product_id','$quantity', '$order_price')") or die('query failed');
+                    // Update stock in the product table
+                    mysqli_query($conn, "UPDATE `products_table` SET `stocks`='$new_stock' WHERE `id`='$product_id'") or die('Query failed');
+                }else{
+                    echo "Out of Stock";
+                }
+            }
 
             // Delete cart items from the `cart` table
             mysqli_query($conn, "DELETE FROM `cart` WHERE user_id = '$userId'") or die('query failed');
