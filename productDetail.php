@@ -44,10 +44,11 @@ function addToCart($conn, $userId, $productId, $quantity, $refresh, $selected_si
     }
 
     if (mysqli_num_rows($check_cart_num) > 0) {
-        echo "<script>alert('Item already in the cart.') </script>";
+        return false;
     } else {
         $sql = "INSERT INTO `cart`(user_id, product_id, quantity, size) VALUES ('$userId', '$productId' ,'$quantity', '$selected_size')";
         mysqli_query($conn, $sql);
+        return true;
     }
 }
 
@@ -58,11 +59,15 @@ if (isset($_POST['add_to_cart'])) {
     $stocks = $_POST['stocks'];
     $selected_size = $_POST['selected_size'];
     if (empty($userId)) {
-        echo "<script>alert('please login')</script>";
+        $msg = "Please Login to proceed";
     } else {
         if ($stocks >= $quantity) {
-            addToCart($conn, $userId, $productId, $quantity, false, $selected_size);
-            $msg = "Successfully added to cart";
+            $addToCartStatus =  addToCart($conn, $userId, $productId, $quantity, false, $selected_size);
+            if ($addToCartStatus) {
+                $msg = "Successfully added to cart";
+            } else {
+                $msg = "Item already in Cart";
+            }
         } else {
             $msg = "Out of Stock";
         }
@@ -92,6 +97,7 @@ if (isset($_POST['add_to_cart'])) {
 
         .detail-image-part {
             width: 50%;
+            padding: 20px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -99,9 +105,11 @@ if (isset($_POST['add_to_cart'])) {
 
         img {
             height: 500px;
+            width: 100%;
+            object-fit: contain;
         }
 
-        .form {
+        form {
             width: 50%;
             padding: 10px;
         }
@@ -120,6 +128,27 @@ if (isset($_POST['add_to_cart'])) {
 
         .sum {
             width: 50px;
+        }
+
+        @media only screen and (max-width: 600px) {
+            .product-detail-container {
+                display: block;
+                width: 100%;
+                height: 100%;
+            }
+
+            .detail-image-part {
+                background-color: red;
+                width: 100%;
+            }
+
+            img {
+                height: 200px;
+            }
+
+            form {
+                width: 100%;
+            }
         }
     </style>
 </head>
@@ -142,7 +171,6 @@ if (isset($_POST['add_to_cart'])) {
         ?>
     </p>
     <div class="product-detail-container">
-
         <div class="detail-image-part">
             <img src=<?php echo $product['image_url'] ?> alt="Product Image">
         </div>

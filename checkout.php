@@ -1,7 +1,7 @@
 <?php
 include("partials/db.php");
-session_start();
-$userId = $_SESSION['user_id'];
+include("partials/getUserSession.php");
+
 if (isset($_POST['order'])) {
     $status = "pending";
     $address = $_POST['address'];

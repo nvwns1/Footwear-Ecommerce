@@ -2,13 +2,13 @@
 include "./partials/db.php";
 $userId = "";
 $msg = "";
-session_start();
-//Fetch cart data base on user_id
-if (isset($_SESSION['user_id'])) {
-    $userId = $_SESSION['user_id'];
-}
+include("partials/getUserSession.php");
+
 try {
-    $sql = "SELECT * FROM orders WHERE user_id = '$userId'";
+    $recordsPerPage = 5;
+    $current_page = isset($_Get['page']) ? $_GET['page'] : 1;
+    $offset = ($current_page - 1) * $recordsPerPage;
+    $sql = "SELECT * FROM orders WHERE user_id = '$userId' LIMIT $offset, $recordsPerPage";
     $stmt = $conn->prepare($sql);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -51,15 +51,6 @@ try {
                 $shipping_address = $order['shipping_address'];
                 $payment_method = $order['payment_method'];
 
-                echo "<div class='small-container'";
-                echo "Order ID: " . $order_id . "<br>";
-                echo '<p> 
-                Order Date: ' . $order_date .   '</br>' .
-                    'Status: ' . $status . '<br>' .
-                    'Shipping Address: ' . $shipping_address . '<br>' .
-                    'Payment Method: ' . $payment_method . '<br>' .
-                    '</p>';
-                echo '<h4>' . "Total Amount: " . $total_amount .  '</h4>';
                 $items_query = "SELECT products.name, products.image_url,
                 order_items.price,
                 order_items.quantity FROM order_items
@@ -67,66 +58,87 @@ try {
                 WHERE order_items.order_id = $order_id
                 ";
                 $items_result = mysqli_query($conn, $items_query) or die('Query failed');
-                if (mysqli_num_rows($items_result) > 0) {
-                    echo "<div class=artist-container>";
-        
-                    while ($item_row = mysqli_fetch_assoc($items_result)) {
-                        $title = $item_row['name'];
-                        $image_path = $item_row['image_url'];
-                        $quantity = $item_row['quantity'];
-                        $item_price = $item_row['price'];
 
-                        echo '<h2>' . $title .  '</h2>';
-                        echo '<img src="' . $image_path . '">';
-                        echo '<p>' . "Price: " . $item_price .  '</p>';
-                        echo '<p>' . "Quantity: " . $quantity .  '</p>';
-                        echo "<br>";
-                        echo "</div>";
-                
-                    }
-                }
+            ?>
+                <div class="small-container">
+                    <table class="table">
+                        <?php
+                        if (mysqli_num_rows($items_result) > 0) {
+                        }
+                        ?>
+                        <tr>
+                            <td>Order Id</td>
+                            <td colspan="3"><?php echo $order_id ?></td>
+                        </tr>
+                        <tr>
+                            <td>Product</td>
+                            <td>Quantity</td>
+                            <td>Price</td>
+                            <td>Image</td>
+                        </tr>
+                        <?php
 
+                        while ($item_row = mysqli_fetch_assoc($items_result)) {
+                            $title = $item_row['name'];
+                            $image_path = $item_row['image_url'];
+                            $quantity = $item_row['quantity'];
+                            $item_price = $item_row['price'];
+                        ?>
+                            <tr>
+                                <td><?php echo $title ?></td>
+                                <td><?php echo $quantity ?></td>
+                                <td><?php echo $item_price ?></td>
+                                <td><img style="height: 50px; width=50px;" src=<?php echo $image_path ?>></td>
+                            </tr>
+                        <?php
+                        }
 
-                echo "</div> <hr>";
+                        ?>
+                        <tr>
+                            <td>Order Date</td>
+                            <td colspan="3"><?php echo $order_date ?></td>
+                        </tr>
+                        <tr>
+                            <td>Status</td>
+                            <td colspan="3"><?php echo $status ?></td>
+                        </tr>
+                        <tr>
+                            <td>Shipping Address</td>
+                            <td colspan="3"><?php echo $shipping_address ?></td>
+                        </tr>
+                        <tr>
+                            <td>Payment Method</td>
+                            <td colspan="3"><?php
+                                            ($payment_method === 'online') ?
+                                                $p =  "Paid via khalti"
+                                                : "Cash On Delivery";
+                                            echo $p;
+                                            ?></td>
+                        </tr>
+                        <tr>
+                            <th>Total Amount</th>
+                            <th colspan="3"><?php echo $total_amount ?></th>
+                        </tr>
+                    </table>
+                </div>
+
+                <hr>
+            <?php
 
             endforeach; ?>
-
-            <!-- <table>
-                <thead>
-                    <tr>
-                        <th>Order Id</th>
-                        <th>Size</th>
-                        <th>Price</th>
-                        <th>Quantity</th>
-                        <th>Action</th>
-                    </tr>
-
-                </thead>
-                <tbody>
-                    <?php
-                    /* $grandTotal = 0;
-                    foreach ($products as $product) : ?>
-                        <tr>
-                            <td><?php echo $product['name']; ?></td>
-                            <td><?php echo $product['size']; ?></td>
-                            <td><?php
-                                $totalProducts = $product['price'] * $product['quantity'];
-                                $grandTotal += $totalProducts;
-                                echo $totalProducts;
-                                ?></td>
-                            <td><?php echo $product['quantity']; ?></td>
-                            <td class="action-buttons">
-                                <!-- <button class="edit-btn">Edit</button> -->
-                                <button class="delete-btn" onclick="confirmDelete(event, <?php echo $product['cart_id']; ?>)">Delete</button>
-                            </td>
-                        </tr>
-                    <?php endforeach; */ ?>
-
-                </tbody>
-            </table> -->
         </div>
-
+        <?php
+        $paginationQuery = "SELECT COUNT(DISTINCT  orders.order_id) as total FROM orders WHERE orders.user_id = $userId";
+        $paginationResult = $conn->query($paginationQuery);
+        $paginationRow = $paginationResult->fetch_assoc();
+        $totalRecords = $paginationRow['total'];
+        $totalPages = ceil($totalRecords / $recordsPerPage);
+        for ($i = 1; $i < $totalPages; $i++) {
+            echo '<a style="padding-right: 15px;" href="?page=' . $i . '">' . $i . '</a> ';
+        }
+        ?>
     </div>
+
 </body>
 
 </html>

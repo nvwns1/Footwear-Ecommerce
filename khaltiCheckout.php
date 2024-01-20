@@ -1,7 +1,6 @@
 <?php
 include("partials/db.php");
-session_start();
-$userId = $_SESSION['user_id'];
+include("partials/getUserSession.php");
 
 if ($_SERVER["REQUEST_METHOD"] == "GET") {
     $orderId = isset($_GET['orderId']) ? $_GET['orderId'] : "";
@@ -26,7 +25,6 @@ if ($_SERVER["REQUEST_METHOD"] == "GET") {
             // Handle the query error, e.g., display an error message
             echo "Error in query: " . mysqli_error($conn);
         }
-
     }
 }
 
@@ -44,6 +42,7 @@ if ($_SERVER["REQUEST_METHOD"] == "GET") {
             width: 100%;
             height: 50vh;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
         }
@@ -56,9 +55,11 @@ if ($_SERVER["REQUEST_METHOD"] == "GET") {
     <?php include("components/navbar.php") ?>
     <?php include("components/headerImports.php") ?>
     <section class="checkout">
+        <p>
         <h2>Online Payment</h2>
-
-        <button id="payment-button">Pay with Khalti</button>
+        <br>
+        <button class="btn btn-primary" id="payment-button">Pay with Khalti</button>
+        </p>
     </section>
 
     <script>
@@ -85,7 +86,6 @@ if ($_SERVER["REQUEST_METHOD"] == "GET") {
                 onSuccess(payload) {
                     const token = payload.token
                     const orderId = getOrderIdFromQueryString();
-                    console.log(orderId)
                     fetch('khaltiPayment.php', {
                         method: 'POST',
                         headers: {
@@ -98,7 +98,7 @@ if ($_SERVER["REQUEST_METHOD"] == "GET") {
                     })
                     console.log(payload)
                     if (payload) {
-                        // window.location.href = 'orderHistory.php';
+                        window.location.href = 'orderHistory.php';
                     }
                 },
                 onError(error) {

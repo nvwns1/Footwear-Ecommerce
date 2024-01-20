@@ -65,7 +65,7 @@ if (isset($_SESSION['msg'])) {
             </div>
         </div>
         <div class="allProduct-container">
-            <table>
+            <table class="table">
                 <thead>
                     <tr>
                         <th>Name</th>

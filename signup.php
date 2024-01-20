@@ -72,7 +72,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <input type="email" name="email" id="email" required>
                 <br>
                 <label for="">Password</label>
-                <input type="text" name="password" id="password" required>
+                <div style="display: flex;">
+                    <input style="width: 100%;" type="password" name="password" id="passwordInput" required>
+                    <button style="width: 50px;" id="passwordVisibility" type="button">Show</button>
+                </div>
                 <br>
                 <button class="page-button" type="submit">Signup</button>
             </form>
@@ -86,6 +89,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <?php
     include('components/footer.php');
     ?>
+    <script>
+        const button = document.getElementById("passwordVisibility");
+        const passwordInput = document.getElementById("passwordInput")
+        button.addEventListener("click", () => {
+            const btnValue = button.innerText
+            if (btnValue === 'Show') {
+                passwordInput.type = 'text'
+                button.innerText = "Hide"
+            } else {
+                passwordInput.type = 'password'
+                button.innerText = "Show"
+            }
+        })
+    </script>
 </body>
 
 </html>

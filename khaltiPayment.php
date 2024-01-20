@@ -1,8 +1,6 @@
 <?php
 include("partials/db.php");
-session_start();
-$userId = $_SESSION['user_id'];
-echo $userId;
+include("partials/getUserSession.php");
 $data = json_decode(file_get_contents("php://input"));
 $token = $data->token;
 $orderId = isset($data->orderId) ? $data->orderId : "";
