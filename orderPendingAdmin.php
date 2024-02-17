@@ -45,6 +45,32 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $order_id = $_POST['order_id'];
     $newStatus = $_POST['status'];
 
+    if ($newStatus === "delivered") {
+        $sqlquery = "SELECT orders.user_id, users.email FROM orders JOIN users ON orders.user_id = users.user_id WHERE orders.order_id = $order_id";
+        $stmt1 = $conn->prepare($sqlquery);
+        $stmt1->execute();
+        $result1 = $stmt1->get_result();
+        if ($result1) {
+            $row = $result1->fetch_assoc();
+            if ($row) {
+                $email = $row['email'];
+                $subject = "Your item has been delivered";
+                $message = "Dear Customer,\n\nYour item has been delivered. Thank you for shopping with us.";
+                $headers = "From: nvwns1@gmail.com";
+                $success = mail($email, $subject, $message, $headers);
+                if ($success) {
+                    echo "Email sent successfully to $email";
+                } else {
+                    echo "Failed to send email";
+                }
+            } else {
+                echo "No result found";
+            }
+        } else {
+            echo "Error in executing the query";
+        }
+    }
+
     $sql = "UPDATE orders SET status = '$newStatus' WHERE order_id = '$order_id'";
     if ($conn->query($sql) === TRUE) {
         $_SESSION['msg'] = "Status updated successfully";
@@ -91,152 +117,161 @@ if (isset($_SESSION['msg'])) {
             </div>
         </div>
         <div class="allProduct-container">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Order Id</th>
-                        <th>Date</th>
-                        <th>Order Status</th>
-                        <th>Shipping Address</th>
-                        <th>Payment Method</th>
-                        <th>Payment Status</th>
-                        <th>Total amount</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php
-                    foreach ($orders as $order) :
-                        $order_id = $order['order_id'];
-                        $order_date = $order['order_date'];
-                        $total_amount = $order['total_amount'];
-                        $status = $order['status'];
-                        $shipping_address = $order['shipping_address'];
-                        $payment_method;
-                        if ($order['payment_status'] === 'paid') {
-                            $payment_method = 'Paid via Khalti';
-                        } else {
-                            $payment_method = 'Cash on Delivery';
-                        }
-                        $payment_status = $order['payment_status'];
-                    ?>
-                        <tr>
-                            <td><?php echo $order_id ?></td>
-                            <td><?php echo $order_date ?></td>
-                            <td><?php echo $status ?></td>
-                            <td><?php echo $shipping_address ?></td>
-                            <td><?php echo $payment_method ?></td>
-                            <td><?php echo $payment_status ?></td>
-                            <td>Rs. <?php echo $total_amount ?></td>
-                            <td>
-
-                                <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#modal_<?php echo $order_id; ?>">
-                                    Edit </button>
-                            </td>
-                        </tr>
-                    <?php
-                    endforeach; ?>
-
-                </tbody>
-            </table>
-
             <?php
-            foreach ($orders as $row) :
-                $order_id = $row['order_id'];
+            if ($orders) {
             ?>
-                <div class="modal fade" id="modal_<?php echo $order_id;  ?>" role="dialog">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <button type="button" class="close" data-dismiss="modal">&times;</button>
-                                <h4 class="modal-title">Order: <?php echo $row['order_id']; ?></h4>
-                            </div>
-                            <div class="modal-body">
-                                <table class="table">
-                                    <tr>
-                                        <td>S.N</td>
-                                        <td>Product Id</td>
-                                        <td>Product Name</td>
-                                        <td>Product Size</td>
-                                        <td>Product Quantity</td>
-                                        <td>Product Price</td>
-                                    </tr>
-                                    <?php
-                                    $productIds = explode(',', $row['order_item_ids']);
-                                    $productNames = explode(',', $row['product_names']);
-                                    $productSizes = explode(',', $row['sizes']);
-                                    $productQuantities = explode(',', $row['quantities']);
-                                    $productPrices = explode(',', $row['prices']);
-                                    $numberOfProducts = count($productIds);
-                                    for ($i = 0; $i < $numberOfProducts; $i++) {
-                                        echo '<tr>';
-                                        echo '<td>' . $i + 1 . '</td>';
-                                        echo '<td>' . $productIds[$i] . '</td>';
-                                        echo '<td>' . $productNames[$i] . '</td>';
-                                        echo '<td>' . $productSizes[$i] . '</td>';
-                                        echo '<td>' . $productQuantities[$i] . '</td>';
-                                        echo '<td>' . $productPrices[$i] . '</td>';
-                                        echo '</tr>';
-                                    }
-                                    ?>
-                                    <tr>
-                                        <td colspan="3">Total Price</td>
-                                        <td colspan="3"><?php echo $row['total_amount']; ?></td>
-                                    </tr>
-                                    <tr>
-                                        <td colspan="3">Payment Status</td>
-                                        <td colspan="3"><?php echo $row['payment_status']; ?></td>
-                                    </tr>
-                                    <tr>
-                                        <td colspan="3">Payment Method</td>
-                                        <td colspan="3">
-                                            <?php
-                                            if ($row['payment_status'] === 'paid') {
-                                                echo "Paid Via Khalti";
-                                            } else {
-                                                echo "Cash On Delivery";
-                                            } ?></td>
-                                    </tr>
-                                    <tr>
-                                        <td colspan="3">Token</td>
-                                        <td colspan="3"><?php echo $row['token']; ?></td>
-                                    </tr>
-                                    <tr>
-                                        <td colspan="3">Shipping address</td>
-                                        <td colspan="3"><?php echo $row['shipping_address']; ?></td>
-                                    </tr>
-                                    <tr>
-                                        <td colspan="3">Order Status</td>
-                                        <td colspan="3"><?php echo $row['status']; ?></td>
-                                    </tr>
-                                    <form style="background-color: red;" action="" method="post">
-                                        <input type="text" name="order_id" value=<?php echo $order_id ?> hidden>
-                                        <div class="radio">
-                                            <label>
-                                                <input type="radio" name="status" value="pending" checked>
-                                                Pending
-                                            </label>
-                                            <br>
-                                            <label>
-                                                <input type="radio" name="status" value="delivered">Delivered
-                                            </label><br>
-                                            <label>
-                                                <input type="radio" name="status" value="canceled">Canceled
-                                            </label>
-                                        </div>
-                                        <button class="button btn-primary" type="submit"> Status</button>
-                                    </form>
-                                </table>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Order Id</th>
+                            <th>Date</th>
+                            <th>Order Status</th>
+                            <th>Shipping Address</th>
+                            <th>Payment Method</th>
+                            <th>Payment Status</th>
+                            <th>Total amount</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php
 
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                        foreach ($orders as $order) :
+                            $order_id = $order['order_id'];
+                            $order_date = $order['order_date'];
+                            $total_amount = $order['total_amount'];
+                            $status = $order['status'];
+                            $shipping_address = $order['shipping_address'];
+                            $payment_method;
+                            if ($order['payment_status'] === 'paid') {
+                                $payment_method = 'Paid via Khalti';
+                            } else {
+                                $payment_method = 'Cash on Delivery';
+                            }
+                            $payment_status = $order['payment_status'];
+                        ?>
+                            <tr>
+                                <td><?php echo $order_id ?></td>
+                                <td><?php echo $order_date ?></td>
+                                <td><?php echo $status ?></td>
+                                <td><?php echo $shipping_address ?></td>
+                                <td><?php echo $payment_method ?></td>
+                                <td><?php echo $payment_status ?></td>
+                                <td>Rs. <?php echo $total_amount ?></td>
+                                <td>
+
+                                    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#modal_<?php echo $order_id; ?>">
+                                        Edit </button>
+                                </td>
+                            </tr>
+                        <?php
+                        endforeach; ?>
+
+                    </tbody>
+                </table>
+
+                <?php
+                foreach ($orders as $row) :
+                    $order_id = $row['order_id'];
+                ?>
+                    <div class="modal fade" id="modal_<?php echo $order_id;  ?>" role="dialog">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                                    <h4 class="modal-title">Order: <?php echo $row['order_id']; ?></h4>
+                                </div>
+                                <div class="modal-body">
+                                    <table class="table">
+                                        <tr>
+                                            <td>S.N</td>
+                                            <td>Product Id</td>
+                                            <td>Product Name</td>
+                                            <td>Product Size</td>
+                                            <td>Product Quantity</td>
+                                            <td>Product Price</td>
+                                        </tr>
+                                        <?php
+                                        $productIds = explode(',', $row['order_item_ids']);
+                                        $productNames = explode(',', $row['product_names']);
+                                        $productSizes = explode(',', $row['sizes']);
+                                        $productQuantities = explode(',', $row['quantities']);
+                                        $productPrices = explode(',', $row['prices']);
+                                        $numberOfProducts = count($productIds);
+                                        for ($i = 0; $i < $numberOfProducts; $i++) {
+                                            echo '<tr>';
+                                            echo '<td>' . $i + 1 . '</td>';
+                                            echo '<td>' . $productIds[$i] . '</td>';
+                                            echo '<td>' . $productNames[$i] . '</td>';
+                                            echo '<td>' . $productSizes[$i] . '</td>';
+                                            echo '<td>' . $productQuantities[$i] . '</td>';
+                                            echo '<td>' . $productPrices[$i] . '</td>';
+                                            echo '</tr>';
+                                        }
+                                        ?>
+                                        <tr>
+                                            <td colspan="3">Total Price</td>
+                                            <td colspan="3"><?php echo $row['total_amount']; ?></td>
+                                        </tr>
+                                        <tr>
+                                            <td colspan="3">Payment Status</td>
+                                            <td colspan="3"><?php echo $row['payment_status']; ?></td>
+                                        </tr>
+                                        <tr>
+                                            <td colspan="3">Payment Method</td>
+                                            <td colspan="3">
+                                                <?php
+                                                if ($row['payment_status'] === 'paid') {
+                                                    echo "Paid Via Khalti";
+                                                } else {
+                                                    echo "Cash On Delivery";
+                                                } ?></td>
+                                        </tr>
+                                        <tr>
+                                            <td colspan="3">Token</td>
+                                            <td colspan="3"><?php echo $row['token']; ?></td>
+                                        </tr>
+                                        <tr>
+                                            <td colspan="3">Shipping address</td>
+                                            <td colspan="3"><?php echo $row['shipping_address']; ?></td>
+                                        </tr>
+                                        <tr>
+                                            <td colspan="3">Order Status</td>
+                                            <td colspan="3"><?php echo $row['status']; ?></td>
+                                        </tr>
+                                        <form action="" method="post">
+                                            <input type="text" name="order_id" value=<?php echo $order_id ?> hidden>
+                                            <div class="radio">
+                                                <label>
+                                                    <input type="radio" name="status" value="pending" checked>
+                                                    Pending
+                                                </label>
+                                                <br>
+                                                <label>
+                                                    <input type="radio" name="status" value="delivered">Delivered
+                                                </label><br>
+                                                <label>
+                                                    <input type="radio" name="status" value="canceled">Canceled
+                                                </label>
+                                            </div>
+                                            <button class="button btn-primary" type="submit"> Status</button>
+                                        </form>
+                                    </table>
+
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
             <?php
-            endforeach; ?>
+                endforeach;
+            } else {
+                echo "No Item Here";
+            }
+            ?>
+
 
         </div>
         <?php
