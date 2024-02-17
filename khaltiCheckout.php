@@ -2,32 +2,37 @@
 include("partials/db.php");
 include("partials/getUserSession.php");
 
-if ($_SERVER["REQUEST_METHOD"] == "GET") {
-    $orderId = isset($_GET['orderId']) ? $_GET['orderId'] : "";
+$cart_total = 0;
+$cart_products = [];
 
-    $query = "SELECT * from orders WHERE order_id = '$orderId'";
-    $result = mysqli_query($conn, $query) or die('query failed');
-    if (mysqli_num_rows($result) > 0) {
-        while ($row = mysqli_fetch_assoc($result)) {
-            $order_id = $row['order_id'];
-            $user_id = $row['user_id'];
-            $total_amount = $row['total_amount'];
-        }
+$query = "SELECT cart.cart_id, cart.user_id, products.id as productId, products.name, products.price, cart.quantity
+FROM cart INNER JOIN products_table AS products ON products.id = cart.product_id WHERE cart.user_id = '$userId'";
+$result = mysqli_query($conn, $query) or die('query failed');
+if (mysqli_num_rows($result) > 0) {
+    while ($row = mysqli_fetch_assoc($result)) {
+        $cart_id = $row['cart_id'];
 
-        $query2 = "SELECT name FROM order_items JOIN products_table ON products_table.id = order_items.product_id WHERE order_id = '$orderId'";
-        $result2 = mysqli_query($conn, $query2);
+        $product_id = $row['productId'];
+        $quantity = $row['quantity'];
 
-        if ($result2) {
-            while ($row = mysqli_fetch_assoc($result2)) {
-                $productName = $row['name'];
-            }
-        } else {
-            // Handle the query error, e.g., display an error message
-            echo "Error in query: " . mysqli_error($conn);
-        }
+        // Add the product details to the cart products array
+        $cart_products[] = [
+            'product_id' => $product_id,
+            'title' => $row['name'],
+            'price' => $row['price'],
+            'quantity' => $quantity
+        ];;
+        $sub_total = ($row['price'] * $quantity);
+        $cart_total += $sub_total;
     }
 }
 
+// echo json_encode($cart_products);
+
+if (empty($cart_products)) {
+    header("Location: index.php");
+    exit();
+}
 ?>
 
 <!DOCTYPE html>
@@ -63,17 +68,25 @@ if ($_SERVER["REQUEST_METHOD"] == "GET") {
     </section>
 
     <script>
-        function getOrderIdFromQueryString() {
-            const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get('orderId') || '';
-        }
-        const totalAmount = <?php echo json_encode($total_amount); ?>;
-        const productName = <?php echo json_encode($productName); ?>;
+        const totalAmount = <?php echo $cart_total; ?>;
+        const cartProducts = <?php echo json_encode($cart_products); ?>;
+
+        let productNames = "";
+        let productIds = ""
+
+        cartProducts.forEach(product => {
+            productIds += product.product_id + ', '
+            productNames += product.title + ', ';
+        });
+
+        productNames = productNames.slice(0, -2);
+        productIds = productIds.slice(0, -2);
+
+
         const config = {
-            // replace the publicKey with yours
             "publicKey": "test_public_key_b597ee27dff04c8d83d4416536e12317",
-            "productIdentity": "1234567890",
-            "productName": productName,
+            "productIdentity": productIds,
+            "productName": productNames,
             "productUrl": "http://gameofthrones.wikia.com/wiki/Dragons",
             "paymentPreference": [
                 "KHALTI",
@@ -85,7 +98,6 @@ if ($_SERVER["REQUEST_METHOD"] == "GET") {
             "eventHandler": {
                 onSuccess(payload) {
                     const token = payload.token
-                    const orderId = getOrderIdFromQueryString();
                     fetch('khaltiPayment.php', {
                         method: 'POST',
                         headers: {
@@ -93,11 +105,12 @@ if ($_SERVER["REQUEST_METHOD"] == "GET") {
                         },
                         body: JSON.stringify({
                             token,
-                            orderId
                         }),
                     })
                     if (payload) {
                         window.location.href = 'orderHistory.php';
+                    } else {
+                        console.log(payload, 'not - ordered')
                     }
                 },
                 onError(error) {
@@ -114,10 +127,8 @@ if ($_SERVER["REQUEST_METHOD"] == "GET") {
         console.log(totalAmount)
         var btn = document.getElementById("payment-button");
         btn.onclick = function() {
-            // minimum transaction amount must be 10, i.e 1000 in paisa.
             checkout.show({
                 amount: totalAmount * 100
-                // amount: 1000
             });
         }
     </script>
